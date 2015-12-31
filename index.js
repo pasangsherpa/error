@@ -30,7 +30,7 @@ function error(opts) {
   // env
   var env = process.env.NODE_ENV || 'development';
 
-  return function *error(next){
+  return function* error(next) {
     try {
       yield next;
       if (404 == this.response.status && !this.response.body) this.throw(404);
@@ -51,9 +51,25 @@ function error(opts) {
 
         case 'json':
           this.type = 'application/json';
-          if ('development' == env) this.body = { message: err.message, errors: errors }
-          else if (err.expose) this.body = { message: err.message, errors: errors }
-          else this.body = { error: http.STATUS_CODES[this.status] }
+          if ('development' == env) {
+            this.body = {
+              error: {
+                message: err.message,
+                code: err.code,
+                errors: err.errors
+              }
+            }
+          } else if (err.expose) {
+            this.body = {
+              error: {
+                message: err.message,
+                code: err.code,
+                errors: err.errors
+              }
+            }
+          } else this.body = {
+            error: http.STATUS_CODES[this.status]
+          }
           break;
 
         case 'html':
