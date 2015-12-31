@@ -51,8 +51,8 @@ function error(opts) {
 
         case 'json':
           this.type = 'application/json';
-          if ('development' == env) this.body = { error: err.message }
-          else if (err.expose) this.body = { error: err.message }
+          if ('development' == env) this.body = { message: err.message, errors: errors }
+          else if (err.expose) this.body = { message: err.message, errors: errors }
           else this.body = { error: http.STATUS_CODES[this.status] }
           break;
 
