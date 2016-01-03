@@ -40,8 +40,10 @@ function error(opts) {
       // application
       this.app.emit('error', err, this);
 
+      var accepts = this.accepts('html', 'text', 'json',
+        'application/vnd.api+json');
       // accepted types
-      switch (this.accepts('html', 'text', 'json')) {
+      switch (accepts) {
         case 'text':
           this.type = 'text/plain';
           if ('development' == env) this.body = err.message
@@ -49,23 +51,20 @@ function error(opts) {
           else throw err;
           break;
 
+        case 'application/vnd.api+json':
         case 'json':
-          this.type = 'application/json';
-          if ('development' == env) {
-            this.body = {
-              error: {
-                message: err.message,
-                code: err.code,
-                errors: err.errors
-              }
+          this.type = accepts == 'json' ? 'application/json' : accepts;
+          if ('development' == env || err.expose) {
+            var errors = [];
+
+            if (err.errors) {
+              errors = err.errors.map(error => _generateJsonApiError(error));
+            } else {
+              errors.push(_generateJsonApiError(err));
             }
-          } else if (err.expose) {
+
             this.body = {
-              error: {
-                message: err.message,
-                code: err.code,
-                errors: err.errors
-              }
+              errors: errors
             }
           } else this.body = {
             error: http.STATUS_CODES[this.status]
@@ -87,5 +86,26 @@ function error(opts) {
           break;
       }
     }
+  }
+}
+
+/**
+ * Generate JsonApi compliant Error object
+ * http://jsonapi.org/format/#errors
+ * http://jsonapi.org/examples/#error-objects-basics
+ *
+ * @param  {Object} err
+ * @return {Object}
+ */
+function _generateJsonApiError(err) {
+  return {
+    id: err.id,
+    links: err.links,
+    status: err.status && err.status.toString(),
+    code: err.code && err.status.toString(),
+    title: err.message,
+    detail: err.detail,
+    source: err.source,
+    meta: err.meta
   }
 }
